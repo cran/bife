@@ -14,7 +14,8 @@
 #'   \item{KID2}{# of kids 3-5}
 #'   \item{KID3}{# of kids 6-17}
 #'   \item{INCH}{income husband}
-#'   \item{AGE}{age of woman}}
+#'   \item{AGE}{age of woman}
+#'   \item{TIME}{time identifier}}
 #'   
 #' @references
 #' Hyslop, D. (1999). "State Dependence, Serial Correlation and Heterogeneity in Intertemporal Labor Force Participation of Married Women". Econometrica 67(6), 1255-1294.

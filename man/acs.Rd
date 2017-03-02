@@ -23,10 +23,9 @@ unbalanced panel were the largest state consists of \eqn{T_{max} = 74,752}
 and the smallest of \eqn{T_{min} = 855} married women.
 }
 \references{
-American Community Survey. \url{http://www.census.gov}.
+American Community Survey. \url{https://www.census.gov}.
 }
 \seealso{
 \code{\link{bife}}
 }
 \keyword{datasets}
-

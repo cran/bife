@@ -12,7 +12,8 @@
   \item{KID2}{# of kids 3-5}
   \item{KID3}{# of kids 6-17}
   \item{INCH}{income husband}
-  \item{AGE}{age of woman}}}
+  \item{AGE}{age of woman}
+  \item{TIME}{time identifier}}}
 \usage{
 psid
 }
@@ -28,4 +29,3 @@ Hyslop, D. (1999). "State Dependence, Serial Correlation and Heterogeneity in In
 \code{\link{bife}}
 }
 \keyword{datasets}
-

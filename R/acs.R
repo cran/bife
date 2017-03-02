@@ -18,7 +18,7 @@
 #'   \item{LFP}{labor force participation}}
 #'   
 #' @references
-#' American Community Survey. \url{http://www.census.gov}.
+#' American Community Survey. \url{https://www.census.gov}.
 #'   
 #' @seealso
 #' \code{\link{bife}}
