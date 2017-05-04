@@ -168,7 +168,11 @@ double log_likelihood(const arma::colvec &z,
                       const unsigned int model) {
   
   
-  return arma::accu(arma::log(CDF(z, model).replace(0.0, 1.0e-16)));
+  arma::colvec cdf = CDF(z, model);
+  cdf(arma::find(cdf == 0.0)).fill(1.0e-16);
+  
+  
+  return arma::accu(arma::log(cdf));
 }
 
 
@@ -192,7 +196,10 @@ arma::colvec gamma(const arma::colvec &y,
       {
         const arma::colvec q = 2.0 * y - 1.0;
         const arma::colvec z = q % mu;
-        g = (PDF(z, model) % q) / CDF(z, model).replace(0.0, 1.0e-16);
+        arma::colvec Phi = CDF(z, model);
+        Phi(arma::find(Phi == 0.0)).fill(1.0e-16);
+        
+        g = (PDF(z, model) % q) / Phi;
         break;
       }
   }
@@ -215,7 +222,10 @@ arma::colvec weights(const arma::colvec &y,
   
     case 0 :
       {
-        w = PDF(mu, model).replace(0.0, 1.0e-16);
+        arma::colvec pdf = PDF(mu, model);
+        pdf(arma::find(pdf == 0.0)).fill(1.0e-16);
+        
+        w = pdf;
         break;
       }
     case 1 :
@@ -224,7 +234,8 @@ arma::colvec weights(const arma::colvec &y,
         const arma::colvec phi = PDF(z, model);
         const arma::colvec Phi = CDF(z, model);
         w = phi % (phi + z % Phi) / arma::pow(Phi, 2);
-        w.replace(0.0, 1.0e-16);
+        
+        w(arma::find(w == 0.0)).fill(1.0e-16);
         break;
       }
     }
@@ -314,19 +325,22 @@ void demeaning(arma::colvec &beta,
     alpha = alpha_diff + alpha_old;
     
     const double ll_old = ll;
-    ll = log_likelihood(q % (alpha(index_id) + X) * beta, model);
+    ll = log_likelihood(q % (alpha(index_id) + X * beta), model);
     if (ll <= ll_old) {
       
-      arma::colvec ll_vector(s);
+      double step_alphai;
       for (arma::uword i = 0 ; i < s ; ++i) {
         
         const arma::colvec alpha_temp = alpha_old + alpha_diff * step_alpha(i);
-        ll_vector(i) = log_likelihood(q % (alpha_temp(index_id) + X * beta), model);
+        const double ll_temp = log_likelihood(q % (alpha_temp(index_id) + X * beta), model);
+        if (ll_temp >= ll) {
+          
+          ll = ll_temp;
+          step_alphai = step_alpha(i);
+        }
       }
       
-      const arma::uword s_max = ll_vector.index_max();
-      ll = ll_vector(s_max);
-      alpha = alpha_old + alpha_diff * step_alpha(s_max);
+      alpha = alpha_old + alpha_diff * step_alphai;
    
       double step_beta = 2.0;
       do{
@@ -334,7 +348,7 @@ void demeaning(arma::colvec &beta,
         step_beta *= 0.5;
         const arma::colvec beta_temp = beta_old + beta_diff * step_beta;
         ll = log_likelihood(q % (alpha(index_id) + X * beta_temp), model);
-      } while (ll < ll_old && step_beta > 1e-6);
+      } while (ll < ll_old && step_beta > 1.0e-06);
       
       beta = beta_old + beta_diff * step_beta;
     }
@@ -611,39 +625,6 @@ arma::mat avg_peff_corr(const arma::colvec &discrete,
         Avg_peff.col(1) = avg_peff(discrete, beta_tilde, alpha_tilde, X, index_id, model) - delta_hat / arma::mean(Ti_vector);
         break;
       }
-    case 2 :
-      {
-        // 2 - Jackknife bias correction
-        const arma::uword Ti_max = time.max();
-        const arma::colvec T_jack = Ti_vector - 1.0;
-        arma::colvec se_beta_jack(d);
-        arma::colvec se_alpha_jack(n);
-        arma::mat H_jack(d, d);
-        unsigned int iter_jack;
-        bool conv_jack;
-      
-        arma::mat Avg_peff_jack(d, Ti_max);
-        for (arma::uword i = 0 ; i < Ti_max ; ++i) {
-        
-          Rcpp::checkUserInterrupt();
-        
-          const arma::uvec index_jack = arma::find(time != i + 1);
-          const arma::colvec y_jack = y(index_jack);
-          const arma::mat X_jack = X.rows(index_jack);
-          const arma::uvec index_id_jack = index_id(index_jack);
-          arma::colvec beta_jack = beta_start;
-          arma::colvec alpha_jack = alpha_start;
-        
-          demeaning(beta_jack, alpha_jack, se_beta_jack, se_alpha_jack, H_jack, iter_jack, conv_jack, y_jack, X_jack, index_id_jack, T_jack, model, iter_max1, tolerance1);
-          alpha_jack = offset(iter_jack, conv_jack, beta_jack, y_jack, X_jack, index_id_jack, T_jack, model, iter_max2, tolerance2);
-        
-          Avg_peff_jack.col(i) = avg_peff(discrete, beta_jack, alpha_jack, X_jack, index_id_jack, model);
-        }
-      
-        const double T_bar = arma::mean(Ti_vector);
-        Avg_peff.col(1) = T_bar * Avg_peff.col(0) - (T_bar - 1.0) * arma::sum(Avg_peff_jack, 1) / T_bar;
-        break;
-      }
   }
   
   
@@ -699,16 +680,8 @@ Rcpp::List bife(const arma::colvec &y,
   for (arma::uword i = 0 ; i < n ; ++i) {
     
     arma::uword end = start;
-    while (id(end + 1) == id_unique(i)) {
-      
-      end++;
-      if (end == nt - 1) {
-        
-        break;
-      }
-    }
-    
-    const arma::colvec yi = y.subvec(start, end);
+    while (end < nt && id(++end) == id_unique(i));
+    const arma::colvec yi = y.subvec(start, --end);
     const arma::uword Ti = yi.n_rows;
     
     Ti_vector(i) = Ti;
@@ -732,8 +705,7 @@ Rcpp::List bife(const arma::colvec &y,
   const arma::colvec alpha_start = ICDF(y_bar, model) - X_bar * beta;
   arma::colvec alpha = alpha_start;
   
-  // Compute degrees of freedom and start 'demeaning' to obtain coefficients and standard errors
-  const unsigned int df = nt - d - n;
+  // Start 'demeaning' to obtain coefficients and standard errors
   arma::colvec se_beta(d);
   arma::colvec se_alpha(n);
   arma::mat H_beta(d, d);
@@ -748,13 +720,26 @@ Rcpp::List bife(const arma::colvec &y,
     case 0 :
       {
         // 0 - No bias correction
-        return Rcpp::List::create(Rcpp::Named("par") = Rcpp::List::create(Rcpp::Named("beta") = beta, Rcpp::Named("alpha") = alpha, Rcpp::Named("se_beta") = se_beta, Rcpp::Named("se_alpha") = se_alpha,
-                                                                          Rcpp::Named("beta_vcov") = H_beta, Rcpp::Named("avg_alpha") = arma::mean(alpha)),
-                                  Rcpp::Named("logl_info") = Rcpp::List::create(Rcpp::Named("nobs") = nt, Rcpp::Named("df") = df, Rcpp::Named("loglik") = log_likelihood((2.0 * y - 1.0) % (X * beta + alpha(index_id)), model),
-                                                                                Rcpp::Named("events") = arma::accu(y), Rcpp::Named("iter_demeaning") = iter_demeaning, Rcpp::Named("conv_demeaning") = conv_demeaning),
-                                  Rcpp::Named("model_info") = Rcpp::List::create(Rcpp::Named("used_ids") = id_unique, Rcpp::Named("beta_start") = beta_start, Rcpp::Named("alpha_start") = alpha_start, 
-                                                                                 Rcpp::Named("y") = y, Rcpp::Named("X") = X, Rcpp::Named("id") = id,
-                                                                                 Rcpp::Named("time") = time, Rcpp::Named("index_id") = index_id, Rcpp::Named("Ti_vector") = Ti_vector));
+        
+        // Return "0 - No bias correction"
+        return Rcpp::List::create(Rcpp::Named("par") = Rcpp::List::create(Rcpp::Named("beta") = beta,
+                                                                          Rcpp::Named("alpha") = alpha,
+                                                                          Rcpp::Named("se_beta") = se_beta,
+                                                                          Rcpp::Named("se_alpha") = se_alpha,
+                                                                          Rcpp::Named("beta_vcov") = H_beta,
+                                                                          Rcpp::Named("avg_alpha") = arma::mean(alpha)),
+                                  Rcpp::Named("logl_info") = Rcpp::List::create(Rcpp::Named("loglik") = log_likelihood((2.0 * y - 1.0) % (X * beta + alpha(index_id)), model),
+                                                                                Rcpp::Named("iter_demeaning") = iter_demeaning,
+                                                                                Rcpp::Named("conv_demeaning") = conv_demeaning),
+                                  Rcpp::Named("model_info") = Rcpp::List::create(Rcpp::Named("used_ids") = id_unique,
+                                                                                 Rcpp::Named("beta_start") = beta_start,
+                                                                                 Rcpp::Named("alpha_start") = alpha_start, 
+                                                                                 Rcpp::Named("y") = y,
+                                                                                 Rcpp::Named("X") = X,
+                                                                                 Rcpp::Named("id") = id,
+                                                                                 Rcpp::Named("time") = time,
+                                                                                 Rcpp::Named("index_id") = index_id,
+                                                                                 Rcpp::Named("Ti_vector") = Ti_vector));
       }
     case 1 :
       {
@@ -809,33 +794,6 @@ Rcpp::List bife(const arma::colvec &y,
         beta_tilde = beta - B_bar / arma::mean(Ti_vector);
         break;
       }
-    case 2 :
-      {
-        // 2 - Jackknife bias correction
-        const arma::uword Ti_max = time.max();
-        const arma::colvec Ti_jack = Ti_vector - 1.0;
-        arma::colvec beta_jack = beta_start;
-        arma::colvec alpha_jack = alpha_start;
-        arma::colvec se_beta_jack(d);
-        arma::colvec se_alpha_jack(n);
-        arma::mat H_jack(d, d);
-        
-        unsigned int iter_jack;
-        bool conv_jack;
-        arma::mat Beta(d, Ti_max);
-        for (arma::uword i = 0 ; i < Ti_max ; ++i) {
-          
-          Rcpp::checkUserInterrupt();
-          
-          const arma::uvec index_jack = arma::find(time != i + 1);
-          demeaning(beta_jack, alpha_jack, se_beta_jack, se_alpha_jack, H_jack, iter_jack, conv_jack, y(index_jack), X.rows(index_jack), index_id(index_jack), Ti_jack, model, iter_max1, tolerance1);
-          
-          Beta.col(i) = beta_jack;
-        }
-        const double T_bar = arma::mean(Ti_vector);
-        beta_tilde = T_bar * beta - (T_bar - 1.0) * arma::sum(Beta, 1) / T_bar;
-        break;
-      }
   }
   
   // Compute fixed effects after bias correction (Step 8 - pseudo-code)
@@ -850,15 +808,33 @@ Rcpp::List bife(const arma::colvec &y,
   standard_errors(se_beta_tilde, se_alpha_tilde, H_beta_tilde, beta_tilde, alpha_tilde, y, X, index_id, Ti_vector, model);
   
   
-  return Rcpp::List::create(Rcpp::Named("par") = Rcpp::List::create(Rcpp::Named("beta") = beta, Rcpp::Named("alpha") = alpha, Rcpp::Named("se_beta") = se_beta,
-                                                                    Rcpp::Named("se_alpha") = se_alpha, Rcpp::Named("beta_vcov") = H_beta, Rcpp::Named("avg_alpha") = arma::mean(alpha)),
-                            Rcpp::Named("par_corr") = Rcpp::List::create(Rcpp::Named("beta") = beta_tilde, Rcpp::Named("alpha") = alpha_tilde, Rcpp::Named("se_beta") = se_beta_tilde,
-                                                                         Rcpp::Named("se_alpha") = se_alpha_tilde, Rcpp::Named("beta_vcov") = H_beta_tilde, Rcpp::Named("avg_alpha") = arma::mean(alpha_tilde)),
-                            Rcpp::Named("logl_info") = Rcpp::List::create(Rcpp::Named("nobs") = nt, Rcpp::Named("df") = df, Rcpp::Named("loglik") = log_likelihood((2.0 * y - 1.0) % (X * beta + alpha(index_id)), model),
-                                                                          Rcpp::Named("events") = arma::accu(y), Rcpp::Named("iter_demeaning") = iter_demeaning, Rcpp::Named("conv_demeaning") = conv_demeaning,
-                                                                          Rcpp::Named("loglik_corr") = log_likelihood((2.0 * y - 1.0) % (X * beta_tilde + alpha_tilde(index_id)), model),
-                                                                          Rcpp::Named("iter_offset") = iter_offset, Rcpp::Named("conv_offset") = conv_offset), 
-                            Rcpp::Named("model_info") = Rcpp::List::create(Rcpp::Named("used_ids") = id_unique, Rcpp::Named("beta_start") = beta_start, Rcpp::Named("alpha_start") = alpha_start,
-                                                                           Rcpp::Named("y") = y, Rcpp::Named("X") = X, Rcpp::Named("id") = id,
-                                                                           Rcpp::Named("time") = time, Rcpp::Named("index_id") = index_id, Rcpp::Named("Ti_vector") = Ti_vector));
+  // Return "1 - Analytical bias correction"
+  const arma::colvec q = 2.0 * y - 1.0;
+  return Rcpp::List::create(Rcpp::Named("par") = Rcpp::List::create(Rcpp::Named("beta") = beta,
+                                                                    Rcpp::Named("alpha") = alpha,
+                                                                    Rcpp::Named("se_beta") = se_beta,
+                                                                    Rcpp::Named("se_alpha") = se_alpha,
+                                                                    Rcpp::Named("beta_vcov") = H_beta,
+                                                                    Rcpp::Named("avg_alpha") = arma::mean(alpha)),
+                            Rcpp::Named("par_corr") = Rcpp::List::create(Rcpp::Named("beta") = beta_tilde,
+                                                                         Rcpp::Named("alpha") = alpha_tilde,
+                                                                         Rcpp::Named("se_beta") = se_beta_tilde,
+                                                                         Rcpp::Named("se_alpha") = se_alpha_tilde,
+                                                                         Rcpp::Named("beta_vcov") = H_beta_tilde,
+                                                                         Rcpp::Named("avg_alpha") = arma::mean(alpha_tilde)),
+                            Rcpp::Named("logl_info") = Rcpp::List::create(Rcpp::Named("loglik") = log_likelihood(q % (X * beta + alpha(index_id)), model),
+                                                                          Rcpp::Named("iter_demeaning") = iter_demeaning,
+                                                                          Rcpp::Named("conv_demeaning") = conv_demeaning,
+                                                                          Rcpp::Named("loglik_corr") = log_likelihood(q % (X * beta_tilde + alpha_tilde(index_id)), model),
+                                                                          Rcpp::Named("iter_offset") = iter_offset,
+                                                                          Rcpp::Named("conv_offset") = conv_offset), 
+                            Rcpp::Named("model_info") = Rcpp::List::create(Rcpp::Named("used_ids") = id_unique,
+                                                                           Rcpp::Named("beta_start") = beta_start,
+                                                                           Rcpp::Named("alpha_start") = alpha_start,
+                                                                           Rcpp::Named("y") = y,
+                                                                           Rcpp::Named("X") = X,
+                                                                           Rcpp::Named("id") = id,
+                                                                           Rcpp::Named("time") = time,
+                                                                           Rcpp::Named("index_id") = index_id,
+                                                                           Rcpp::Named("Ti_vector") = Ti_vector));
 }

@@ -31,29 +31,31 @@
 #' @export
 coef.bife <- function(object, corrected = TRUE, fixed = FALSE, ...) {
  
- if(!inherits(object, "bife")) stop("'coef.bife' called on a non-'bife' object")
- if(is.null(object$par_corr)) corrected <- FALSE
- corr <- ifelse(corrected == TRUE, "corrected", "uncorrected")
+  
+  if(!inherits(object, "bife")) stop("'coef.bife' called on a non-'bife' object")
+  if(is.null(object[["par_corr"]])) corrected <- FALSE
+  corr <- ifelse(corrected == TRUE, "corrected", "uncorrected")
  
- switch(corr,
-        corrected = {if(fixed == FALSE) {
-         
-         result <- as.vector(object$par_corr$beta)
-         names(result) <- object$model_info$str_name
-        } else {
-         
-         result <- as.vector(object$par_corr$alpha)
-         names(result) <- object$model_info$used_ids
-        }},
-        uncorrected = {if(fixed == FALSE) {
-         
-         result <- as.vector(object$par$beta)
-         names(result) <- object$model_info$str_name
-        } else {
-         
-         result <- as.vector(object$par$alpha)
-         names(result) <- object$model_info$used_ids
-        }})
+  switch(corr,
+         corrected = {
+           if(fixed == FALSE) {
+             
+             result <- as.vector(object[["par_corr"]][["beta"]])
+             names(result) <- object[["model_info"]][["str_name"]]
+           } else {
+             result <- as.vector(object[["par_corr"]][["alpha"]])
+             names(result) <- object[["model_info"]][["used_ids"]]
+           }},
+         uncorrected = {
+           if(fixed == FALSE) {
+             
+             result <- as.vector(object[["par"]][["beta"]])
+             names(result) <- object[["model_info"]][["str_name"]]
+           } else {
+             
+             result <- as.vector(object[["par"]][["alpha"]])
+             names(result) <- object[["model_info"]][["used_ids"]]
+           }})
  
  
  return(result)

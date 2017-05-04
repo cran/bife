@@ -3,7 +3,7 @@
 
 ## ---- eval=FALSE---------------------------------------------------------
 #  time_bife   <- system.time(bife(y ~ x + d | id, model = "logit", bias_corr = "ana"))[3]
-#  time_clogit <- system.time(clogit(y ~ x + d + strata(id)))[3]
+#  time_clogit <- if(require("survival")) system.time(clogit(y ~ x + d + strata(id)))[3]
 #  time_glm    <- system.time(glm(y ~ x + d + 0 + factor(id), family = binomial()))[3]
 
 ## ---- echo=FALSE, results='asis'-----------------------------------------
@@ -24,56 +24,61 @@ results <- cbind("N" = time_n[, 1], "T" = T_vector, time_n[, 2:4], "N" = N_vecto
 # Print results
 knitr::kable(results)
 
-## ---- echo=FALSE, warning=FALSE, fig.show='hold'-------------------------
+## ---- echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'----------
 # Load package
-library("ggplot2")
+if (require("ggplot2")) {
 
-# Colour palette for colour-blind
-cb.Palette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
-# Transform to data.frame
-time_n <- data.frame(time_n)
-time_t <- data.frame(time_t)
-
-# Regression N
-plot_N <- data.frame(N = time_n[["N"]])
-plot_N$bife_corr <- fitted(lm(bife_corr ~ N, data = time_n))
-plot_N$clogit <- fitted(lm(clogit ~ N, data = time_n))
-plot_N$glm<- fitted(lm(glm ~ N + I(N^2) + I(N^3), data = time_n))
-
-# Regression T
-plot_T <- data.frame(T = time_t[["T"]])
-plot_T$bife_corr <- fitted(lm(bife_corr ~ T, data = time_t))
-plot_T$clogit <- fitted(lm(clogit ~ T + I(T^2) + I(T^3), data = time_t))
-plot_T$glm<- fitted(lm(glm ~ T, data = time_t))
-
-# Plot N
-p <- ggplot(plot_N) +
-            ylab(NULL) +
-            xlim(100, 1000) +
-            ylim(0, 1) +
-            theme_bw() +
-            theme(legend.justification = c(1, 1), legend.position = c(1, 1)) +
-            geom_line(aes(N, bife_corr, colour = "bife_corr"), size = 0.5) +
-            geom_line(aes(N, clogit, colour = "clogit"), size = 0.5) +
-            geom_line(aes(N, glm, colour = "glm"), size = 0.5) +
-            scale_color_manual("", values = cb.Palette)
-
-# Plot T
-q <- ggplot(plot_T) +
-            ylab(NULL) +
-            xlim(10, 100) +
-            ylim(0, 1) +
-            theme_bw() +
-            theme(legend.justification = c(0, 1), legend.position = c(0, 1)) +
-            geom_line(aes(T, bife_corr, colour = "bife_corr"), size = 0.5) +
-            geom_line(aes(T, clogit, colour = "clogit"), size = 0.5) +
-            geom_line(aes(T, glm, colour = "glm"), size = 0.5) +
-            scale_color_manual("", values = cb.Palette)
-
-# Print
-p
-q
+  # Colour palette for colour-blind
+  cb.Palette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  
+  # Transform to data.frame
+  time_n <- data.frame(time_n)
+  time_t <- data.frame(time_t)
+  
+  # Regression N
+  plot_N <- data.frame(N = time_n[["N"]])
+  plot_N[["bife_corr"]] <- fitted(lm(bife_corr ~ N, data = time_n))
+  plot_N[["clogit"]] <- fitted(lm(clogit ~ N, data = time_n))
+  plot_N[["glm"]] <-
+  fitted(lm(glm ~ N + I(N ^ 2) + I(N ^ 3), data = time_n))
+  
+  # Regression T
+  plot_T <- data.frame(T = time_t[["T"]])
+  plot_T[["bife_corr"]] <- fitted(lm(bife_corr ~ T, data = time_t))
+  plot_T[["clogit"]] <-
+  fitted(lm(clogit ~ T + I(T ^ 2) + I(T ^ 3), data = time_t))
+  plot_T[["glm"]] <- fitted(lm(glm ~ T, data = time_t))
+  
+  # Plot N
+  p <- ggplot(plot_N) +
+  ylab(NULL) +
+  xlim(100, 1000) +
+  ylim(0, 1) +
+  theme_bw() +
+  theme(legend.justification = c(1, 1),
+  legend.position = c(1, 1)) +
+  geom_line(aes(N, bife_corr, colour = "bife_corr"), size = 0.5) +
+  geom_line(aes(N, clogit, colour = "clogit"), size = 0.5) +
+  geom_line(aes(N, glm, colour = "glm"), size = 0.5) +
+  scale_color_manual("", values = cb.Palette)
+  
+  # Plot T
+  q <- ggplot(plot_T) +
+  ylab(NULL) +
+  xlim(10, 100) +
+  ylim(0, 1) +
+  theme_bw() +
+  theme(legend.justification = c(0, 1),
+  legend.position = c(0, 1)) +
+  geom_line(aes(T, bife_corr, colour = "bife_corr"), size = 0.5) +
+  geom_line(aes(T, clogit, colour = "clogit"), size = 0.5) +
+  geom_line(aes(T, glm, colour = "glm"), size = 0.5) +
+  scale_color_manual("", values = cb.Palette)
+  
+  # Print
+  p
+  q
+}
 
 ## ---- echo=FALSE, results='asis'-----------------------------------------
 # Load results
@@ -95,7 +100,7 @@ mod_logit <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID, data = p
 summary(mod_logit)
 
 ## ------------------------------------------------------------------------
-apeff_bife(mod_logit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "semi")
+apeff_bife(mod_logit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "ana")
 
 ## ------------------------------------------------------------------------
 mod_probit <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID, 
@@ -103,7 +108,7 @@ mod_probit <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID,
 summary(mod_probit)
 
 ## ------------------------------------------------------------------------
-apeff_bife(mod_probit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "semi")
+apeff_bife(mod_probit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "ana")
 
 ## ---- echo=FALSE, results='asis'-----------------------------------------
 # Load results
@@ -116,15 +121,11 @@ colnames(results_acs) <- c("bife",  "glm", "bife_corr", "clogit")
 # Print results
 knitr::kable(results_acs)
 
-## ---- echo=FALSE, warning=FALSE------------------------------------------
-# Load survival
-library("survival")
-
+## ------------------------------------------------------------------------
 # Load data
 acs <- acs
 
-## ------------------------------------------------------------------------
-print(try(clogit(LFP ~ AGEP + I(PINCP / 1000) + FER + strata(ST), data = acs)))
+print(try(if(require("survival")) clogit(LFP ~ AGEP + I(PINCP / 1000) + FER + strata(ST), data = acs)))
 
 ## ------------------------------------------------------------------------
 mod_logit <- bife(LFP ~ AGEP + I(PINCP / 1000) + FER | ST, data = acs, bias_corr = "no")

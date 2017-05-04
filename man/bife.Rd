@@ -10,8 +10,9 @@ bife(formula, data = list(), beta_start = NULL, model = "logit",
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
-\code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier. The formula can be extended with \code{fixed(z)} to account for
-multiple fixed effects (\eqn{y ~ x + fixed(z) | id}). See \code{fixed} for further details.}
+\code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier.
+The formula can be extended with \code{fixed(z)} to account for multiple fixed effects (\eqn{y ~ x + fixed(z) | id}).
+See \code{fixed} for further details.}
 
 \item{data}{an optional data frame, list or environment (or object coercible by \code{as.data.frame} to a data frame) containing the variables in the model.}
 
@@ -21,8 +22,8 @@ all structural parameters.}
 \item{model}{the description of the error distribution and link function to be used in the model. For \code{bife} this has to be a character string
 naming the model function. The value should be any of \code{"logit"} or \code{"probit"}. Default is \code{"logit"}.}
 
-\item{bias_corr}{an optional string that specifies the type of the bias-correction: no bias-correction, analytical, jackknife. The value should 
-be any of \code{"no"}, \code{"ana"}, or \code{"jack"}. Default is \code{"ana"} (analytical).}
+\item{bias_corr}{an optional string that specifies the type of the bias-correction: no bias-correction or analytical. The value should 
+be any of \code{"no"} or \code{"ana"}. Default is \code{"ana"} (analytical).}
 
 \item{iter_demeaning}{an optional integer value that specifies the maximum number of iterations of the demeaning algorithm. Default is \code{100}. 
 Details are given under \code{Details}.}
@@ -43,18 +44,18 @@ An object of class \code{bife} is a list containing the following components:
   \item{$alpha}{a vector of the uncorrected fixed effects}
   \item{$se_beta}{a vector of the standard errors of the uncorrected structural parameters}
   \item{$se_alpha}{a vector of the standard errors of the uncorrected fixed effects}
-  \item{$beta_vcoc}{a matrix of the covariance matrix of the uncorrected structural parameters}
+  \item{$beta_vcov}{a matrix of the covariance matrix of the uncorrected structural parameters}
   \item{$avg_alpha}{the average of the uncorrected fixed effects}
  \item{par_corr}{}  
   \item{$beta}{a vector of the bias-corrected structural parameters}
   \item{$alpha}{a vector of the bias-adjusted fixed effects}
   \item{$se_beta}{a vector of the standard errors of the bias-corrected structural parameters}
   \item{$se_alpha}{a vector of the standard errors of the bias-adjusted fixed effects}
-  \item{$beta_vcoc}{a matrix of the covariance matrix of the bias-corrected structural parameters}
+  \item{$beta_vcov}{a matrix of the covariance matrix of the bias-corrected structural parameters}
   \item{$avg_alpha}{the average of the bias-adjusted fixed effects}
  \item{logl_info}{}
   \item{$nobs}{number of observations}  
-  \item{$df}{degrees of freedom}
+  \item{$k}{number of loglikelihood parameters}
   \item{$loglik}{the log likelihood value given the uncorrected parameters}
   \item{$events}{number of events}
   \item{$iter_demeaning}{the number of iterations of the demeaning algorithm}
@@ -77,7 +78,7 @@ An object of class \code{bife} is a list containing the following components:
 \code{bife} is used to fit fixed effects binary choice models (logit and probit) based on an unconditional likelihood approach.
 It is tailored for the fast estimation of binary choice models with potentially many individual fixed effects.
 The large dummy variable trap is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
-The incidental parameter bias occuring in panels with shorter time horizons can be reduced by analytic or jackknife 
+The incidental parameter bias occuring in panels with shorter time horizons can be reduced by analytical 
 bias-correction (Newey and Hahn, 2004). If no bias-correction is applied, the estimated coefficients will be identical 
 to the ones obtained by \code{glm}. However, \code{bife} will compute faster than glm, if the model exhibits many fixed effects.
 
@@ -88,7 +89,7 @@ All other parameters in the model are referred to as structural parameters.
 A typical predictor has the form \eqn{response ~ terms | id} where response is the binary response vector (0-1 coded), terms is a series of terms
 which specifies a linear predictor for the response, and refers to an individual identifier. The linear predictor must not include any constant regressors due to the perfect collinearity
 with the fixed effects. Since individuals with a non-varying response do not contribute to the log likelihood they are dropped from the estimation
-procedure (unlike \code{glm}). The analytical and jackknife bias-correction follow Newey and Hahn (2004).
+procedure (unlike \code{glm}). The analytical bias-correction follows Newey and Hahn (2004).
 
 Details for iter_demeaning and tol_demeaning: A special iteratively reweighted least squares demeaning algorithm is used following 
 Stammann, A., F. Heiss, and D. McFadden (2016). The stopping criterion is defined as \eqn{||b(i) - b(i - 1)|| < tol_demeaning}. 

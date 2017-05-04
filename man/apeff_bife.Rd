@@ -4,18 +4,19 @@
 \alias{apeff_bife}
 \title{Average Partial Effects for Binary Choice Models with Fixed Effects}
 \usage{
-apeff_bife(mod, discrete, bias_corr = "semi", iter_demeaning = 100,
+apeff_bife(mod, discrete = NULL, bias_corr = "ana", iter_demeaning = 100,
   tol_demeaning = 1e-05, iter_offset = 1000, tol_offset = 1e-05)
 }
 \arguments{
 \item{mod}{an object of class \code{bife}.}
 
-\item{discrete}{a description of the variables that are discrete regressors. For \code{apeff_bife} this has to be a character string naming the discrete
-regressors.}
+\item{discrete}{a description of the variables that are discrete regressors.
+For \code{apeff_bife} this has to be a character string naming the discrete regressors.
+Default is \code{NULL} (no discrete regressor(s)).}
 
 \item{bias_corr}{an optional string that specifies the type of the bias correction:
-semi, analytical, jackknife. The value should be any of the values \code{"semi"}, 
-\code{"ana"}, or \code{"jack"}. Default is \code{"semi"} (semi bias-correction). Details
+semi or analytical. The value should be any of the values \code{"semi"} or 
+\code{"ana"}. Default is \code{"ana"} (analytical bias-correction). Details
 are given under \code{Details}.}
 
 \item{iter_demeaning}{an optional integer value that specifies the maximum number
@@ -37,8 +38,7 @@ is \code{1e-5}. Details are given under \code{Details}.}
 An object of \code{apeff_bife} returns a named matrix with at least a first
 column "apeff" containing the uncorrected average partial effects of the
 structural variables. An optional second column "apeff_corrected" is returned
-containing the corrected average partial effects of the structural variables
-given the choosen bias-correction (semi, analytical, or jackknife).
+containing the corrected average partial effects of the structural variables.
 }
 \description{
 \code{apeff_bife} is a function used to compute average partial effects
@@ -49,19 +49,14 @@ account for the incidental parameters bias.
 \details{
 The semi bias-corrected average partial effects are computed as usual partial
 effects with the bias-adjusted fixed effects and the bias-corrected structural
-parameters depending on which bias-correction (analytical or jackknife) has
-been used in the previously conducted \code{bife} command, i.e. which kind of
-bias-corrected coefficients are stored in the object \code{mod}.
+parameters.
 
-The analytical and jackknife bias-corrected average partial effects follow
-Newey and Hahn (2004). The jackknife bias-correction requires to repeatedly
-calling \code{bife} (IWLS demeaning algorithm) and to estimate the fixed
-effects model on a subset of the data where the t-th period is excluded.
-For further details consult the description of \code{bife}.
+The analytical bias-corrected average partial effects follow
+Newey and Hahn (2004). For further details consult the description of \code{bife}.
 
 \strong{Note:} Bias-corrected partial effects can be only returned if the
-object \code{mod} returns bias-corrected coefficients, i.e. if a bias-correction
-(analytical or jackknife) has been used in the previous \code{bife} command.
+object \code{mod} returns bias-corrected coefficients, i.e. if a bias-correction 
+has been used in the previous \code{bife} command.
 }
 \examples{
 library("bife")
@@ -83,12 +78,12 @@ mod_ana <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID,
  data = dataset)
                
 # Compute semi-corrected average partial effects for mod_ana
-apeff_bife(mod_ana, discrete = c("KID1", "KID2", "KID3"))
+apeff_bife(mod_ana, discrete = c("KID1", "KID2", "KID3"),
+ bias_corr = "semi")
 
 # Compute analytical bias-corrected average partial effects
 # for mod_ana
-apeff_bife(mod_ana, discrete = c("KID1", "KID2", "KID3"),
- bias_corr = "ana")
+apeff_bife(mod_ana, discrete = c("KID1", "KID2", "KID3"))
  
 }
 \references{

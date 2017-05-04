@@ -58,7 +58,7 @@ To show how the computational burden changes with $N$ and $T$, we either fix $N$
 
 ```{r, eval=FALSE}
 time_bife   <- system.time(bife(y ~ x + d | id, model = "logit", bias_corr = "ana"))[3]
-time_clogit <- system.time(clogit(y ~ x + d + strata(id)))[3]
+time_clogit <- if(require("survival")) system.time(clogit(y ~ x + d + strata(id)))[3]
 time_glm    <- system.time(glm(y ~ x + d + 0 + factor(id), family = binomial()))[3]
 ```
 
@@ -85,56 +85,61 @@ knitr::kable(results)
 
 Visualizing the results illustrates that the computational time of `bife()` is linear in both dimensions and hence is well suited to analyse big panel data. The left figure depicts that with $T=10$, `glm()` becomes dramatically more computationally intensive as  $N$ increases. Besides, `glm()` is  always more time consuming than the other two methods regardless which dimension is varied. Additionally, the right figure already indicates that the computation time of `survival::clogit()` increases more than linearly with $T$. In applications with very large $T$,  `survival::clogit()` can quickly become computationally infeasible in terms of convergence, computation time or technique.
 
-```{r, echo=FALSE, warning=FALSE, fig.show='hold'}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 # Load package
-library("ggplot2")
+if (require("ggplot2")) {
 
-# Colour palette for colour-blind
-cb.Palette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
-# Transform to data.frame
-time_n <- data.frame(time_n)
-time_t <- data.frame(time_t)
-
-# Regression N
-plot_N <- data.frame(N = time_n[["N"]])
-plot_N$bife_corr <- fitted(lm(bife_corr ~ N, data = time_n))
-plot_N$clogit <- fitted(lm(clogit ~ N, data = time_n))
-plot_N$glm<- fitted(lm(glm ~ N + I(N^2) + I(N^3), data = time_n))
-
-# Regression T
-plot_T <- data.frame(T = time_t[["T"]])
-plot_T$bife_corr <- fitted(lm(bife_corr ~ T, data = time_t))
-plot_T$clogit <- fitted(lm(clogit ~ T + I(T^2) + I(T^3), data = time_t))
-plot_T$glm<- fitted(lm(glm ~ T, data = time_t))
-
-# Plot N
-p <- ggplot(plot_N) +
-            ylab(NULL) +
-            xlim(100, 1000) +
-            ylim(0, 1) +
-            theme_bw() +
-            theme(legend.justification = c(1, 1), legend.position = c(1, 1)) +
-            geom_line(aes(N, bife_corr, colour = "bife_corr"), size = 0.5) +
-            geom_line(aes(N, clogit, colour = "clogit"), size = 0.5) +
-            geom_line(aes(N, glm, colour = "glm"), size = 0.5) +
-            scale_color_manual("", values = cb.Palette)
-
-# Plot T
-q <- ggplot(plot_T) +
-            ylab(NULL) +
-            xlim(10, 100) +
-            ylim(0, 1) +
-            theme_bw() +
-            theme(legend.justification = c(0, 1), legend.position = c(0, 1)) +
-            geom_line(aes(T, bife_corr, colour = "bife_corr"), size = 0.5) +
-            geom_line(aes(T, clogit, colour = "clogit"), size = 0.5) +
-            geom_line(aes(T, glm, colour = "glm"), size = 0.5) +
-            scale_color_manual("", values = cb.Palette)
-
-# Print
-p
-q
+  # Colour palette for colour-blind
+  cb.Palette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  
+  # Transform to data.frame
+  time_n <- data.frame(time_n)
+  time_t <- data.frame(time_t)
+  
+  # Regression N
+  plot_N <- data.frame(N = time_n[["N"]])
+  plot_N[["bife_corr"]] <- fitted(lm(bife_corr ~ N, data = time_n))
+  plot_N[["clogit"]] <- fitted(lm(clogit ~ N, data = time_n))
+  plot_N[["glm"]] <-
+  fitted(lm(glm ~ N + I(N ^ 2) + I(N ^ 3), data = time_n))
+  
+  # Regression T
+  plot_T <- data.frame(T = time_t[["T"]])
+  plot_T[["bife_corr"]] <- fitted(lm(bife_corr ~ T, data = time_t))
+  plot_T[["clogit"]] <-
+  fitted(lm(clogit ~ T + I(T ^ 2) + I(T ^ 3), data = time_t))
+  plot_T[["glm"]] <- fitted(lm(glm ~ T, data = time_t))
+  
+  # Plot N
+  p <- ggplot(plot_N) +
+  ylab(NULL) +
+  xlim(100, 1000) +
+  ylim(0, 1) +
+  theme_bw() +
+  theme(legend.justification = c(1, 1),
+  legend.position = c(1, 1)) +
+  geom_line(aes(N, bife_corr, colour = "bife_corr"), size = 0.5) +
+  geom_line(aes(N, clogit, colour = "clogit"), size = 0.5) +
+  geom_line(aes(N, glm, colour = "glm"), size = 0.5) +
+  scale_color_manual("", values = cb.Palette)
+  
+  # Plot T
+  q <- ggplot(plot_T) +
+  ylab(NULL) +
+  xlim(10, 100) +
+  ylim(0, 1) +
+  theme_bw() +
+  theme(legend.justification = c(0, 1),
+  legend.position = c(0, 1)) +
+  geom_line(aes(T, bife_corr, colour = "bife_corr"), size = 0.5) +
+  geom_line(aes(T, clogit, colour = "clogit"), size = 0.5) +
+  geom_line(aes(T, glm, colour = "glm"), size = 0.5) +
+  scale_color_manual("", values = cb.Palette)
+  
+  # Print
+  p
+  q
+}
 ```
 
 ## Workflow
@@ -185,7 +190,7 @@ summary(mod_logit)
 The parameters of binary outcome variables are difficult to interpret quantitatively. In econometrics, partial effects $\frac{\partial Pr(y_{it}=1)}{\partial x_{itj}}$ are of more interest. Neither `glm()` nor `survival::clogit()` provide a routine to compute partial effects. This package provides the function `apeff_bife()` to compute average partial effects based on the estimated model provided by `bife()`. The user simply has to specify which of the variables are discrete and which type of bias correction should be used for the computation of the avarage partial effects. The left column named `apeff` refers to usual uncorrected average partial effects and the right column named `apeff` refers to semi-corrected average partial effects following @sta16.  
 
 ```{r}
-apeff_bife(mod_logit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "semi")
+apeff_bife(mod_logit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "ana")
 ```
 
 `bife()` also offers the opportunity to estimate fixed effects probit models by specifiying `model = "probit"`.
@@ -199,7 +204,7 @@ summary(mod_probit)
 Although the structural parameters are different compared to the logit model due to a different normalization, the average partial effects are similiar:
 
 ```{r}
-apeff_bife(mod_probit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "semi")
+apeff_bife(mod_probit, discrete = c("KID1", "KID2", "KID3"), bias_corr = "ana")
 ```
 
 
@@ -231,16 +236,11 @@ knitr::kable(results_acs)
 
 There are again two things to highlight. First since the bias of $\boldsymbol{\hat{\beta}}$ obtained from `bife(..., bias_corr = "no")` vanishes with large $T$, the bias correction is redundant. Second since the panel structure consists of very large $T$, `survival::clogit()` is not able to handle this dataset:
 
-```{r, echo=FALSE, warning=FALSE}
-# Load survival
-library("survival")
-
+```{r}
 # Load data
 acs <- acs
-```
 
-```{r}
-print(try(clogit(LFP ~ AGEP + I(PINCP / 1000) + FER + strata(ST), data = acs)))
+print(try(if(require("survival")) clogit(LFP ~ AGEP + I(PINCP / 1000) + FER + strata(ST), data = acs)))
 ```
 
 Next, we will show how to analyse panel data with `bife(..., bias_corr = "no")` following the specification above.

@@ -13,12 +13,12 @@
 #' matrix of the bias-corrected or uncorrected structural parameters
 #' are displayed. Default is \code{TRUE} (bias-corrected).
 #' 
+#' @param 
+#' ... other arguments
+#' 
 #' @return
 #' The function \code{vcov.bife} returns a named covariance matrix of the
 #' structural parameters.
-#' 
-#' @param 
-#' ... other arguments
 #' 
 #' @author
 #' Amrei Stammann, Daniel Czarnowske, Florian Heiss, Daniel McFadden
@@ -29,15 +29,16 @@
 #' @export
 vcov.bife <- function(object, corrected = TRUE, ...) {
  
- if(!inherits(object, "bife")) stop("'coef.bife' called on a non-'bife' object")
- if(is.null(object$par.corr)) corrected <- FALSE
- corr <- ifelse(corrected == TRUE, "corrected", "uncorrected")
+  
+  if(!inherits(object, "bife")) stop("'vcov.bife' called on a non-'bife' object")
+  if(is.null(object[["par_corr"]])) corrected <- FALSE
+  corr <- ifelse(corrected == TRUE, "corrected", "uncorrected")
  
- switch (corr,
-         corrected = {result <- object$par_corr$beta_vcov
-                      rownames(result) <- colnames(result) <- object$model_info$str_name},
-         uncorrected = {result <- object$par$beta_vcov
-                        rownames(result) <- colnames(result) <- object$model_info$str_name})
+  switch (corr,
+          corrected = {result <- object[["par_corr"]][["beta_vcov"]]
+                       rownames(result) <- colnames(result) <- object[["model_info"]][["str_name"]]},
+          uncorrected = {result <- object[["par"]][["beta_vcov"]]
+                         rownames(result) <- colnames(result) <- object[["model_info"]][["str_name"]]})
  
  
  return(result)
