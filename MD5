@@ -1,6 +1,6 @@
-2e46a412994bee358773842fd4cb24a8 *DESCRIPTION
+e3ce486bbca9f2a62241dd01038bcd6a *DESCRIPTION
 669e3aab409d52271f1dbd48fc3018fa *NAMESPACE
-ca14aebac5a8c2de5268781a9f50a083 *NEWS
+87fbcd4c0b945d183928a598378e7f63 *NEWS
 8a58b6f766be0345e635e1128c821366 *R/RcppExports.R
 56b563fe89857323024433bb89abd38b *R/acs.R
 3198ff8c547f7e4b0c04915eda29b4ff *R/apeff_bife.R
@@ -18,7 +18,7 @@ ae589f245a6ddfed74824a5ba51d91d5 *R/results_acs.R
 3374679e0fc4ebcac36d26b03d7e47de *R/time_t.R
 28aa096aa42efa723952ef4895f5106f *R/unload.R
 41bd0c74d3e3ca22f59ee9f7e522e109 *R/vcov_bife.R
-16f3fe26cfaf0b5017bf7738077a7bf6 *build/partial.rdb
+0b61aba91c39648d4cb12fee35b040f2 *build/partial.rdb
 beddc126c72b6c67939ab9bf61f1576b *build/vignette.rds
 1d75f9d136da7084fdf3b587f9aa3d31 *data/acs.rda
 82256c47fe208d8aa4ecf6724b323c62 *data/datalist
@@ -30,7 +30,7 @@ b1a3e5332901307c13ddafac071172ca *data/results_psid.rda
 3c00ecc9ca71b9f02d07add91fe069ba *inst/CITATION
 445ac3ec056d684097b61992a5b55369 *inst/doc/bife_introduction.R
 4bfed43715f4002e1f1a2f31d9dd637c *inst/doc/bife_introduction.Rmd
-a2ee4c5ecfd47bcd528c76f3edcc842b *inst/doc/bife_introduction.html
+f8e8ea3892afc3deaf814acf79d1cf81 *inst/doc/bife_introduction.html
 34d5f870f2d8bbf20a7c16a534c55ff9 *man/acs.Rd
 2f7a0c6a969fb78ffd78c1b07469a5c2 *man/apeff_bife.Rd
 dada393ec7141b887df20db99bed899c *man/bife-package.Rd
@@ -50,7 +50,7 @@ a8de51e8e559c428eaf6a424d7adcb0d *man/time_t.Rd
 2a6f9e9e044a78154d3cfda5936d6f48 *src/Makevars
 8d46d69896a1f1d31ed76035a0e49d67 *src/Makevars.win
 794f8ac3a04a8fd89aab2bd50a3e8258 *src/RcppExports.cpp
-81166bc5daf504cdf4ac8af104ee9ec1 *src/bife.cpp
+e09108c56ddffdc597bec539fefec9c9 *src/bife.cpp
 f642b2cf78825b5247c11fc877620098 *src/registration.c
 4bfed43715f4002e1f1a2f31d9dd637c *vignettes/bife_introduction.Rmd
 3ea563494c8020fb92934f2c46933b28 *vignettes/refs.bib

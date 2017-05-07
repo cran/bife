@@ -680,7 +680,7 @@ Rcpp::List bife(const arma::colvec &y,
   for (arma::uword i = 0 ; i < n ; ++i) {
     
     arma::uword end = start;
-    while (end < nt && id(++end) == id_unique(i));
+    while (++end < nt && id(end) == id_unique(i));
     const arma::colvec yi = y.subvec(start, --end);
     const arma::uword Ti = yi.n_rows;
     
