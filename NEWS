@@ -1,3 +1,14 @@
+bife 0.5 (03.03.2018)
+
+[Major Changes]
+
+- Changed the handling of `factor()` in the formula interface. This should now be more in line with
+what users expect.
+- Removed `fixed()`, since you can use `factor()` now.
+
+[Minor Changes]
+- Realigned `print.summary.bife()`.
+
 bife 0.4 (06.05.2017)
 
 [Bug fix]
@@ -12,7 +23,8 @@ bife 0.3 (04.05.2017)
 - Additional downgrades to ensure compability with g++ 4.4.x.
 - Downgraded compiled code from C++11 to C++98. This ensures compability with older compilers.
 - Removed jackknife bias-correction from `bife()` and `apeff_bife()`.
-- `apeff_bife()` now uses the full sample instead of a sub-sample of indiviuals with a varying response.
+- `apeff_bife()` now uses the full sample instead of a sub-sample of indiviuals with a 
+varying response.
 
 [Minor Changes]
 
@@ -21,7 +33,8 @@ bife 0.3 (04.05.2017)
 
 [Bug fix]
 
-- Fixed an issue where `vcov()` was not able to distinguish between corrected and uncorrected coefficients.
+- Fixed an issue where `vcov()` was not able to distinguish between corrected and uncorrected 
+coefficients.
 
 bife 0.2 (20.02.2017)
 
@@ -29,12 +42,14 @@ bife 0.2 (20.02.2017)
 
 - Added a function `fixed()` to model additional fixed-effects. See documentation for further details.
 - Re-structured compiled code to optimize package size.
-- Changed some function and argument names to common naming convention. For instance `apeff.bife(..., bias.corr = "ana")` is now `apeff_bife(..., bias_corr = "ana")`.
+- Changed some function and argument names to common naming convention. For instance 
+`apeff.bife(..., bias.corr = "ana")` is now `apeff_bife(..., bias_corr = "ana")`.
 - Downgraded compiled code from C++11 to C++98. This ensures compability with older compilers.
 
 [Minor Changes]
 
-- Added comments and renamed variables such that they are in line with the notation of the corresponding working paper.
+- Added comments and renamed variables such that they are in line with the notation of the 
+corresponding working paper.
 - Fixed some typos in documentation. 
 
 [Bug fix]

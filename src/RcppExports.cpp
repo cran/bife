@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // avg_peff
 arma::colvec avg_peff(const arma::colvec& discrete, const arma::colvec& beta, const arma::colvec& alpha, const arma::mat& X, const arma::uvec& index_id, const unsigned int model);
-RcppExport SEXP bife_avg_peff(SEXP discreteSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP XSEXP, SEXP index_idSEXP, SEXP modelSEXP) {
+RcppExport SEXP _bife_avg_peff(SEXP discreteSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP XSEXP, SEXP index_idSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -24,7 +24,7 @@ END_RCPP
 }
 // avg_peff_corr
 arma::mat avg_peff_corr(const arma::colvec& discrete, const arma::colvec& beta, const arma::colvec& alpha, const arma::colvec& beta_start, const arma::colvec& alpha_start, const arma::colvec& beta_tilde, const arma::colvec& alpha_tilde, const arma::colvec& y, const arma::mat& X, const arma::colvec& time, const arma::uvec& index_id, const arma::colvec& Ti_vector, const unsigned int model, const unsigned int bias_corr, const unsigned int iter_max1, const double tolerance1, const unsigned int iter_max2, const double tolerance2);
-RcppExport SEXP bife_avg_peff_corr(SEXP discreteSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP beta_startSEXP, SEXP alpha_startSEXP, SEXP beta_tildeSEXP, SEXP alpha_tildeSEXP, SEXP ySEXP, SEXP XSEXP, SEXP timeSEXP, SEXP index_idSEXP, SEXP Ti_vectorSEXP, SEXP modelSEXP, SEXP bias_corrSEXP, SEXP iter_max1SEXP, SEXP tolerance1SEXP, SEXP iter_max2SEXP, SEXP tolerance2SEXP) {
+RcppExport SEXP _bife_avg_peff_corr(SEXP discreteSEXP, SEXP betaSEXP, SEXP alphaSEXP, SEXP beta_startSEXP, SEXP alpha_startSEXP, SEXP beta_tildeSEXP, SEXP alpha_tildeSEXP, SEXP ySEXP, SEXP XSEXP, SEXP timeSEXP, SEXP index_idSEXP, SEXP Ti_vectorSEXP, SEXP modelSEXP, SEXP bias_corrSEXP, SEXP iter_max1SEXP, SEXP tolerance1SEXP, SEXP iter_max2SEXP, SEXP tolerance2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -52,7 +52,7 @@ END_RCPP
 }
 // bife
 Rcpp::List bife(const arma::colvec& y, const arma::mat& X, const arma::colvec& id, const arma::colvec& beta_start, const unsigned int model, const unsigned int bias_corr, const unsigned int iter_max1, const double tolerance1, const unsigned int iter_max2, const double tolerance2);
-RcppExport SEXP bife_bife(SEXP ySEXP, SEXP XSEXP, SEXP idSEXP, SEXP beta_startSEXP, SEXP modelSEXP, SEXP bias_corrSEXP, SEXP iter_max1SEXP, SEXP tolerance1SEXP, SEXP iter_max2SEXP, SEXP tolerance2SEXP) {
+RcppExport SEXP _bife_bife(SEXP ySEXP, SEXP XSEXP, SEXP idSEXP, SEXP beta_startSEXP, SEXP modelSEXP, SEXP bias_corrSEXP, SEXP iter_max1SEXP, SEXP tolerance1SEXP, SEXP iter_max2SEXP, SEXP tolerance2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -69,4 +69,16 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(bife(y, X, id, beta_start, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_bife_avg_peff", (DL_FUNC) &_bife_avg_peff, 6},
+    {"_bife_avg_peff_corr", (DL_FUNC) &_bife_avg_peff_corr, 18},
+    {"_bife_bife", (DL_FUNC) &_bife_bife, 10},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_bife(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

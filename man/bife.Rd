@@ -5,14 +5,12 @@
 \title{Binary Choice Models with Fixed Effects}
 \usage{
 bife(formula, data = list(), beta_start = NULL, model = "logit",
-  bias_corr = "ana", iter_demeaning = 100, tol_demeaning = 1e-05,
-  iter_offset = 1000, tol_offset = 1e-05)
+  bias_corr = "ana", iter_demeaning = 100L, tol_demeaning = 1e-05,
+  iter_offset = 1000L, tol_offset = 1e-05)
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
-\code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier.
-The formula can be extended with \code{fixed(z)} to account for multiple fixed effects (\eqn{y ~ x + fixed(z) | id}).
-See \code{fixed} for further details.}
+\code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier (fixed effects).}
 
 \item{data}{an optional data frame, list or environment (or object coercible by \code{as.data.frame} to a data frame) containing the variables in the model.}
 
@@ -77,7 +75,7 @@ An object of class \code{bife} is a list containing the following components:
 \description{
 \code{bife} is used to fit fixed effects binary choice models (logit and probit) based on an unconditional likelihood approach.
 It is tailored for the fast estimation of binary choice models with potentially many individual fixed effects.
-The large dummy variable trap is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
+The large dummy variable matrix is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
 The incidental parameter bias occuring in panels with shorter time horizons can be reduced by analytical 
 bias-correction (Newey and Hahn, 2004). If no bias-correction is applied, the estimated coefficients will be identical 
 to the ones obtained by \code{glm}. However, \code{bife} will compute faster than glm, if the model exhibits many fixed effects.

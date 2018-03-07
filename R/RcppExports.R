@@ -2,14 +2,14 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 .avg_peff <- function(discrete, beta, alpha, X, index_id, model) {
-    .Call('bife_avg_peff', PACKAGE = 'bife', discrete, beta, alpha, X, index_id, model)
+    .Call(`_bife_avg_peff`, discrete, beta, alpha, X, index_id, model)
 }
 
 .avg_peff_corr <- function(discrete, beta, alpha, beta_start, alpha_start, beta_tilde, alpha_tilde, y, X, time, index_id, Ti_vector, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2) {
-    .Call('bife_avg_peff_corr', PACKAGE = 'bife', discrete, beta, alpha, beta_start, alpha_start, beta_tilde, alpha_tilde, y, X, time, index_id, Ti_vector, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2)
+    .Call(`_bife_avg_peff_corr`, discrete, beta, alpha, beta_start, alpha_start, beta_tilde, alpha_tilde, y, X, time, index_id, Ti_vector, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2)
 }
 
 .bife <- function(y, X, id, beta_start, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2) {
-    .Call('bife_bife', PACKAGE = 'bife', y, X, id, beta_start, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2)
+    .Call(`_bife_bife`, y, X, id, beta_start, model, bias_corr, iter_max1, tolerance1, iter_max2, tolerance2)
 }
 

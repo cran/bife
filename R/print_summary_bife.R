@@ -26,9 +26,9 @@
 #' 
 #' @export
 print.summary.bife <- function(x, digits = max(3, getOption("digits") - 3), ...) {
- 
-  
-  if(!inherits(x, "summary.bife")) stop("'print.summary.bife' called on a non-'summary.bife' object")
+  if(!inherits(x, "summary.bife")) {
+    stop("'print.summary.bife' called on a non-'summary.bife' object")
+  } 
  
   cat("---------------------------------------------------------------\n")
   cat("Fixed effects", x[["model"]], "model\n")
@@ -45,25 +45,34 @@ print.summary.bife <- function(x, digits = max(3, getOption("digits") - 3), ...)
                           paste("converged after", x[["iter_demeaning"]], "iteration(s)\n"), 
                           "did not converge\n"))
   if(x[["bias_corr"]] != "no") {
-  
-    cat("Offset", ifelse(x[["conv_offset"]] == TRUE,
-                         paste("converged after", x[["iter_offset"]], "iteration(s)\n"),
-                         "did not converge\n"))
+    if(x[["corrected"]] == TRUE) {
+      cat("Offset", ifelse(x[["conv_offset"]] == TRUE,
+                           paste("converged after", x[["iter_offset"]], "iteration(s)\n"),
+                           "did not converge\n"))
+    } else {
+      cat("\n")
+    }
   }
  
-  if(x[["corrected"]] == TRUE) cat("\nCorrected structural parameter(s):\n\n") else cat("\nUncorrected structural parameter(s):\n\n")
+  if(x[["corrected"]] == TRUE) {
+    cat("\nCorrected structural parameter(s):\n\n")
+  } else {
+    cat("\nUncorrected structural parameter(s):\n\n")
+  }
   printCoefmat(x[["coefmat_beta"]], P.values = TRUE, has.Pvalue = TRUE, digits = digits)
 
   cat("\nAIC= ", x[["AIC"]], ", BIC= ", x[["BIC"]], "\n\n")
   
-  if(x[["drop_NA"]] > 0) cat("(", x[["drop_NA"]], "observation(s) deleted due to missingness )\n")
-  if(x[["drop_pc"]] > 0) cat("(", x[["drop_pc"]], "observation(s) deleted due to perfect classification )\n")
+  if(x[["drop_NA"]] > 0) {
+    cat("(", x[["drop_NA"]], "observation(s) deleted due to missingness )\n")
+  }
+  if(x[["drop_pc"]] > 0) {
+    cat("(", x[["drop_pc"]], "observation(s) deleted due to perfect classification )\n")
+  }
  
   if(is.null(x[["coefmat_alpha"]])) {
-  
     cat("\nAverage individual fixed effects=", round(x[["avg_alpha"]], digits = digits))
   } else {
-  
     cat("\nIndiviudal fixed effects:\n\n")
     printCoefmat(x[["coefmat_alpha"]], P.values = TRUE, has.Pvalue = TRUE, digits = digits)
   }

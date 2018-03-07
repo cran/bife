@@ -4,7 +4,7 @@
 #' @description
 #' \code{bife} is used to fit fixed effects binary choice models (logit and probit) based on an unconditional likelihood approach.
 #' It is tailored for the fast estimation of binary choice models with potentially many individual fixed effects.
-#' The large dummy variable trap is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
+#' The large dummy variable matrix is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
 #' The incidental parameter bias occuring in panels with shorter time horizons can be reduced by analytical 
 #' bias-correction (Newey and Hahn, 2004). If no bias-correction is applied, the estimated coefficients will be identical 
 #' to the ones obtained by \code{glm}. However, \code{bife} will compute faster than glm, if the model exhibits many fixed effects.
@@ -14,9 +14,7 @@
 #' 
 #' @param 
 #' formula an object of class \code{"formula"} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
-#' \code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier.
-#' The formula can be extended with \code{fixed(z)} to account for multiple fixed effects (\eqn{y ~ x + fixed(z) | id}).
-#' See \code{fixed} for further details.
+#' \code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier (fixed effects).
 #'
 #' @param 
 #' data an optional data frame, list or environment (or object coercible by \code{as.data.frame} to a data frame) containing the variables in the model.
@@ -164,7 +162,7 @@
 #' Formula Formula model.part
 #' 
 #' @importFrom
-#' stats aggregate coef model.frame model.matrix model.response plogis pnorm update 
+#' stats aggregate coef model.frame model.matrix model.response plogis pnorm
 #' 
 #' @useDynLib 
 #' bife, .registration = TRUE 
@@ -176,31 +174,43 @@
 bife <- function(formula, data = list(),
                  beta_start = NULL,
                  model = "logit", bias_corr = "ana",
-                 iter_demeaning = 100, tol_demeaning = 1e-5,
-                 iter_offset = 1000, tol_offset = 1e-5) {
+                 iter_demeaning = 100L, tol_demeaning = 1.0e-05,
+                 iter_offset = 1000L, tol_offset = 1.0e-05) {
  
  
   # Checking input arguments
-  if(model != "logit" && model != "probit") stop("'model' must be 'logit' or 'probit'.")
-  if(bias_corr != "no" && bias_corr != "ana") stop("'bias_corr' must be 'no' or 'ana'.")
+  if(model != "logit" && model != "probit") {
+    stop("'model' must be 'logit' or 'probit'.")
+  }
+  if(bias_corr != "no" && bias_corr != "ana") {
+    stop("'bias_corr' must be 'no' or 'ana'.")
+  }
   
   # Update formula and drop missing values
   formula <- Formula(formula)
   mf <- model.frame(formula = formula, data = data)
-  if(ncol(model.part(formula, data = mf, rhs = 2)) != 1) stop("'id' uncorrectly specified.")
+  if(ncol(model.part(formula, data = mf, rhs = 2L)) != 1L) {
+    stop("'id' uncorrectly specified.")
+  }
    
   # Ordering data
   mf <- mf[order(mf[[ncol(mf)]]), ]
    
   # Extract data
-  y <- model.response(mf)
-  X <- model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1)
-  id <- model.part(formula, data = mf, rhs = 2)[[1]]
+  # Ensures y is 0-1 encoded
+  y <- as.integer(factor(model.response(mf))) - 1L
+  # Changed (Version 0.5):
+  # Users had some troubles using factor() variables. New code should be more in line with what
+  # Users expect
+  # Old:
+  # X <- model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1)
+  X <- model.matrix(formula, data = mf, rhs = 1L)[, - 1L, drop = FALSE]
+  id <- model.part(formula, data = mf, rhs = 2L)[[1L]]
    
   # Perfectly classified: avg in {0,1}
   mean_table <- aggregate(y ~ id, FUN = mean)
-  mean_y <- mean_table[, 2]
-  index_pc <- which(id %in% mean_table[(mean_y > 0 & mean_y < 1), 1])
+  mean_y <- mean_table[, 2L]
+  index_pc <- id %in% mean_table[(mean_y > 0.0 & mean_y < 1.0), 1L]
   
   # Store information
   nobs <- length(y)
@@ -209,23 +219,23 @@ bife <- function(formula, data = list(),
    
   # Drop perfectly classified
   y <- y[index_pc]
-  X <- as.matrix(X[index_pc, ])
+  X <- X[index_pc, , drop = FALSE]
   id <- id[index_pc]
    
   # Set starting values if needed and check dimension if specified
   if(is.null(beta_start)) {
-    
     beta_start <- numeric(d)
   } else {
-    
-    if(length(beta_start) != d) stop("'beta_start' must be of same dimension as the number of structural parameters.")
+    if(length(beta_start) != d) {
+      stop("'beta_start' must be of same dimension as the number of structural parameters.")
+    }
   }
    
   # Map "model"
-  switch(model, logit = model_int <- 0, probit = model_int <- 1)
+  switch(model, logit = model_int <- 0L, probit = model_int <- 1L)
    
   # Map "bias_corr"
-  switch(bias_corr, no = bias_corr_int <- 0, ana = bias_corr_int <- 1)
+  switch(bias_corr, no = bias_corr_int <- 0L, ana = bias_corr_int <- 1L)
    
   # Start algorithm
   result <- .bife(y = y, X = X, id = id,
@@ -241,7 +251,7 @@ bife <- function(formula, data = list(),
   result[["model_info"]][["drop_NA"]] <- length(attr(mf, "na.action"))
   result[["model_info"]][["drop_pc"]] <- nobs - length(index_pc)
   result[["model_info"]][["formula"]] <- formula
-  result[["model_info"]][["str_name"]] <- attr(X, "dimnames")[[2]]
+  result[["model_info"]][["str_name"]] <- attr(X, "dimnames")[[2L]]
   result[["model_info"]][["model"]] <- model
   result[["model_info"]][["bias_corr"]] <- bias_corr
    
