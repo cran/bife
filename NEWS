@@ -1,3 +1,16 @@
+bife 0.6 (24.05.2019)
+
+[Major Changes]
+
+- Major source code cleaning and revision.
+- Vignette renamed and revised.
+- The asymptotic bias-correction is ported to a post-estimation routine `bias_corr()`.
+- Replaced the bias-correction of Hahn and Newey (2004) with the one of Fernandez-Val (2009). Thus it is now also applicable to dynamic models (see vignette).
+- The post-estimation routine `apeff_bife()` was renamed to `get_APEs()` and also returns an estimate of the covariance using the delta method.
+- Fixed a bug where the number of perfectly classified observations was not reported correctly. This bug also caused the estimates of the average partial effects to be unreliable for small time horizons.
+- Some performance tweaks.
+- Removed 'acs' data to reduce overall package size.
+
 bife 0.5 (03.03.2018)
 
 [Major Changes]

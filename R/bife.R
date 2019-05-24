@@ -1,261 +1,393 @@
 #' @title
-#' Binary Choice Models with Fixed Effects
-#' 
+#' Efficiently fit binary choice models with fixed effects
 #' @description
-#' \code{bife} is used to fit fixed effects binary choice models (logit and probit) based on an unconditional likelihood approach.
-#' It is tailored for the fast estimation of binary choice models with potentially many individual fixed effects.
-#' The large dummy variable matrix is avoided by a special iteratively reweighted least squares demeaning algorithm (Stammann, Heiss, and McFadden, 2016).
-#' The incidental parameter bias occuring in panels with shorter time horizons can be reduced by analytical 
-#' bias-correction (Newey and Hahn, 2004). If no bias-correction is applied, the estimated coefficients will be identical 
-#' to the ones obtained by \code{glm}. However, \code{bife} will compute faster than glm, if the model exhibits many fixed effects.
+#' \code{\link{bife}} can be used to fit fixed effects binary choice models (logit and probit) 
+#' based on an unconditional maximum likelihood approach. It is tailored for the fast estimation of 
+#' binary choice models with potentially many individual fixed effects. The routine is based on a 
+#' special pseudo demeaning algorithm derived by Stammann, Heiss, and McFadden (2016). The 
+#' estimates obtained are identical to the ones of \code{\link[stats]{glm}}, but the computation 
+#' time of \code{\link{bife}} is much lower.
 #' 
-#' \strong{Remark:} The term fixed effect is used in econometrician`s sense of having a time-constant dummy for each individual. 
-#' All other parameters in the model are referred to as structural parameters.
-#' 
+#' \strong{Remark:} The term fixed effect is used in econometrician's sense of having a full set of 
+#' individual specific intercepts. All other parameters in the model are referred to as 
+#' structural parameters.
+#' @param
+#' formula an object of class \code{"formula"} (or one that can be coerced to that class): 
+#' a symbolic description of the model to be fitted. \code{formula} must be of type 
+#' \eqn{y ~ x | id} where the \code{id} refers to an individual identifier (fixed effect category).
+#' @param
+#' data an object of class \code{"data.frame"} containing the variables in the model.
 #' @param 
-#' formula an object of class \code{"formula"} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
-#' \code{formula} must be of type \eqn{y ~ x | id} where the \code{id} refers to an individual identifier (fixed effects).
-#'
+#' model the description of the error distribution and link function to be used in the model. 
+#' For \code{\link{bife}} this has to be a character string naming the model function. 
+#' Default is \code{"logit"}.
 #' @param 
-#' data an optional data frame, list or environment (or object coercible by \code{as.data.frame} to a data frame) containing the variables in the model.
-#' 
+#' beta_start an optional vector of starting values used for the structural parameters in the 
+#' optimization algorithm. Default is zero for all structural parameters.
+#' @param
+#' control a named list of parameters for controlling the fitting process. See 
+#' \code{\link{bife_control}} for details.
+#' @param
+#' bias_corr deprecated; see \code{\link{bias_corr}}.
 #' @param 
-#' beta_start an optional vector of starting values used for the structural parameters in the demeaning algorithm. Default is zero for 
-#' all structural parameters.
+#' tol_demeaning,iter_demeaning,tol_offset,iter_offset deprecated; see \code{\link{bife_control}}.
+#' @details
+#' \code{\link{bife}} drops all observations of cross-sectional units (individuals) with 
+#' non-varying response. This can de done because these observations do not contribute to the 
+#' identification of the structural parameters (perfect classification).
 #' 
-#' @param 
-#' model the description of the error distribution and link function to be used in the model. For \code{bife} this has to be a character string
-#' naming the model function. The value should be any of \code{"logit"} or \code{"probit"}. Default is \code{"logit"}.
-#' 
-#' @param 
-#' bias_corr an optional string that specifies the type of the bias-correction: no bias-correction or analytical. The value should 
-#' be any of \code{"no"} or \code{"ana"}. Default is \code{"ana"} (analytical).
-#' 
-#' @param 
-#' iter_demeaning an optional integer value that specifies the maximum number of iterations of the demeaning algorithm. Default is \code{100}. 
-#' Details are given under \code{Details}.
-#' 
-#' @param 
-#' tol_demeaning an optional number that specifies the tolerance level of the demeaning algorithm. Default is \code{1e-5}. Details are given 
-#' under \code{Details}.
-#' 
-#' @param 
-#' iter_offset an optional integer value that specifies the maximum number of iterations of the offset algorithm for the computation of 
-#' bias-adjusted fixed effects. Default is \code{1000}. Details are given under \code{Details}.
-#' 
-#' @param 
-#' tol_offset an optional number that specifies the tolerance level of the offset algorithm for the computation of bias-adjusted fixed effects.
-#' Default is \code{1e-5}. Details are given under \code{Details}.
-#' 
-#' @details 
-#' A typical predictor has the form \eqn{response ~ terms | id} where response is the binary response vector (0-1 coded), terms is a series of terms
-#' which specifies a linear predictor for the response, and refers to an individual identifier. The linear predictor must not include any constant regressors due to the perfect collinearity
-#' with the fixed effects. Since individuals with a non-varying response do not contribute to the log likelihood they are dropped from the estimation
-#' procedure (unlike \code{glm}). The analytical bias-correction follows Newey and Hahn (2004).
-#' 
-#' Details for iter_demeaning and tol_demeaning: A special iteratively reweighted least squares demeaning algorithm is used following 
-#' Stammann, A., F. Heiss, and D. McFadden (2016). The stopping criterion is defined as \eqn{||b(i) - b(i - 1)|| < tol_demeaning}. 
-#' 
-#' Details for iter_offset and tol_offset: The bias-adjusted fixed effects are computed via an iteratively reweighted least (IWLS) squares
-#' algorithm efficiently tailored to sparse data. The algorithm includes the bias-corrected structural parameters in the linear predictor during 
-#' fitting. The stopping criterion in the IWLS algorithm is defined as \eqn{any(|b(i) - b(i - 1)| / |b(i - 1)|) < tol_offset}.
-#' 
-#' @return An object of class \code{bife} is a list containing the following components:
-#'  \item{par}{}
-#'   \item{$beta}{a vector of the uncorrected structural parameters}
-#'   \item{$alpha}{a vector of the uncorrected fixed effects}
-#'   \item{$se_beta}{a vector of the standard errors of the uncorrected structural parameters}
-#'   \item{$se_alpha}{a vector of the standard errors of the uncorrected fixed effects}
-#'   \item{$beta_vcov}{a matrix of the covariance matrix of the uncorrected structural parameters}
-#'   \item{$avg_alpha}{the average of the uncorrected fixed effects}
-#'  \item{par_corr}{}  
-#'   \item{$beta}{a vector of the bias-corrected structural parameters}
-#'   \item{$alpha}{a vector of the bias-adjusted fixed effects}
-#'   \item{$se_beta}{a vector of the standard errors of the bias-corrected structural parameters}
-#'   \item{$se_alpha}{a vector of the standard errors of the bias-adjusted fixed effects}
-#'   \item{$beta_vcov}{a matrix of the covariance matrix of the bias-corrected structural parameters}
-#'   \item{$avg_alpha}{the average of the bias-adjusted fixed effects}
-#'  \item{logl_info}{}
-#'   \item{$nobs}{number of observations}  
-#'   \item{$k}{number of loglikelihood parameters}
-#'   \item{$loglik}{the log likelihood value given the uncorrected parameters}
-#'   \item{$events}{number of events}
-#'   \item{$iter_demeaning}{the number of iterations of the demeaning algorithm}
-#'   \item{$conv_demeaning}{a logical value indicating convergence of the demeaning algorithm}
-#'   \item{$loklik_corr}{the log likelihood given the bias-corrected/-adjusted parameters}
-#'   \item{$iter_offset}{the number of iterations of the offset algorithm}
-#'   \item{$conv_offset}{a logical value indicating convergence of the offset algorithm}
-#'  \item{model_info}{}
-#'   \item{$used_ids}{a vector of the retained ids during fitting}
-#'   \item{$y}{the response vector given $used.ids}
-#'   \item{$beta_start}{a vector of used starting values}
-#'   \item{$X}{the model matrix given $used.ids}
-#'   \item{$id}{a vector of the individual identifier given $used.ids}
-#'   \item{$t}{a vector of the time identifier given $used.ids}
-#'   \item{$drop_pc}{number of individuals dropped during fitting due to non-varying response (perfect classification)}
-#'   \item{$drop_NA}{number of individuals dropped due to missing values}
-#'   \item{...}{further objects passed to other methods in \code{bife}}
-#' 
-#' @author
-#' Amrei Stammann, Daniel Czarnowske, Florian Heiss, Daniel McFadden
-#' 
-#' @references 
-#' Hahn, J., and W. Newey (2004). "Jackknife and analytical bias reduction for nonlinear panel models". Econometrica 72(4), 1295-1319.
-#' 
+#' If \code{\link{bife}} does not converge this is usually a sign of linear dependence between 
+#' one or more regressors and the fixed effects. In this case, you should carefully inspect 
+#' your model specification.
+#' @return
+#' The function \code{\link{bife}} returns a named list of class \code{"bife"}.
 #' @references
-#' Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large Panel Data". Working paper.
-#'
-#' @examples
-#' library("bife")
-#' 
+#' Stammann, A., Heiss, F., and and McFadden, D. (2016). "Estimating Fixed Effects Logit Models with 
+#' Large Panel Data". Working paper.
+#' @examples 
+#' \donttest{
 #' # Load 'psid' dataset
+#' library(bife)
 #' dataset <- psid
-#' head(dataset)
 #' 
-#' # Fixed effects logit model w/o bias-correction
-#' mod_no <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID, 
-#'  data = dataset, bias_corr = "no")
-#' 
-#' # Summary of uncorrected structural parameters only        
-#' summary(mod_no)
-#' 
-#' # Summary plus fixed effects
-#' summary(mod_no, fixed = TRUE)
-#' 
-#' # Fixed effects logit model with analytical bias-correction
-#' mod_ana <- bife(LFP ~ AGE + I(INCH / 1000) + KID1 + KID2 + KID3 | ID,
-#'  data = dataset)
-#'                
-#' # Summary of bias-corrected structural parameters only
-#' summary(mod_ana)
-#' 
-#' # Summary of uncorrected structural parameters only
-#' summary(mod_ana, corrected = FALSE)
-#' 
-#' # Summary of bias-corrected structural parameters plus -adjusted
-#' # fixed effects
-#' summary(mod_ana, fixed = TRUE)
-#' 
-#' # Extract bias-corrected structural parameters of mod_ana
-#' beta_ana <- coef(mod_ana)
-#' print(beta_ana)
-#' 
-#' # Extract bias-adjusted fixed effects of mod_ana
-#' alpha_ana <- coef(mod_ana, fixed = TRUE)
-#' print(alpha_ana)
-#' 
-#' # Extract uncorrected structural parameters of mod_ana
-#' beta_no <- coef(mod_ana, corrected = FALSE)
-#' print(beta_no)
-#' 
-#' # Extract covariance matrix of bias-corrected structural
-#' # parameters of mod_ana
-#' vcov_ana <- vcov(mod_ana)
-#' print(vcov_ana)
-#' 
-#' # Extract covariance matrix of uncorrected structural parameters
-#' # of mod_ana
-#' vcov_no <- vcov(mod_ana, corrected = FALSE)
-#' print(vcov_no)
-#' 
-#' @importFrom
-#' Formula Formula model.part
-#' 
-#' @importFrom
-#' stats aggregate coef model.frame model.matrix model.response plogis pnorm
-#' 
-#' @useDynLib 
-#' bife, .registration = TRUE 
-#' 
-#' @importFrom
-#' Rcpp evalCpp
-#' 
+#' # Fit a static logit model
+#' mod <- bife(LFP ~ I(AGE^2) + log(INCH) + KID1 + KID2 + KID3 + factor(TIME) | ID, dataset)
+#' summary(mod)
+#' }
+#' @importFrom data.table setDT first setattr setkeyv .N .SD :=
+#' @importFrom Formula Formula
+#' @importFrom stats binomial coef model.frame model.matrix pnorm printCoefmat terms vcov
+#' @importFrom Rcpp evalCpp
+#' @useDynLib bife, .registration = TRUE 
 #' @export
-bife <- function(formula, data = list(),
-                 beta_start = NULL,
-                 model = "logit", bias_corr = "ana",
-                 iter_demeaning = 100L, tol_demeaning = 1.0e-05,
-                 iter_offset = 1000L, tol_offset = 1.0e-05) {
- 
- 
-  # Checking input arguments
-  if(model != "logit" && model != "probit") {
-    stop("'model' must be 'logit' or 'probit'.")
-  }
-  if(bias_corr != "no" && bias_corr != "ana") {
-    stop("'bias_corr' must be 'no' or 'ana'.")
+bife <- function(formula, data = list(), model = c("logit", "probit"),
+                 beta_start = NULL, control = list(),
+                 bias_corr = NULL, tol_demeaning = NULL, iter_demeaning = NULL,
+                 tol_offset = NULL, iter_offset = NULL) {
+  # Notification that bias-corrections are now a post-estimation routine
+  if (!is.null(bias_corr)) {
+    warning("Bias-correction is transfered to the post-estimation routine 'bias_corr'.",
+            call. = FALSE)
   }
   
-  # Update formula and drop missing values
+  # Deprecated function arguments - Will be removed soon!
+  if (!is.null(tol_demeaning) || !is.null(iter_demeaning) ||
+      !is.null(tol_offset) || !is.null(iter_offset)) {
+    warning(paste0("Some function arguments are deprecated; ",
+                   "please see 'bife_control' and use 'control' instead."), call. = FALSE)
+  }
+  
+  # Validity of input argument (model)
+  model <- match.arg(model)
+  family <- binomial(model)
+  
+  # Validity of input argument (control)
+  if (!inherits(control, "list")) {
+    stop("'control' has to be of class list.", call. = FALSE)
+  }
+  
+  # Extract control list
+  control <- do.call(bife_control, control)
+  
+  # Update formula and do further validity check
   formula <- Formula(formula)
-  mf <- model.frame(formula = formula, data = data)
-  if(ncol(model.part(formula, data = mf, rhs = 2L)) != 1L) {
-    stop("'id' uncorrectly specified.")
+  if (length(formula)[[2L]] != 2L || length(formula)[[1L]] > 1L) {
+    stop("'formula' uncorrectly specified.", call. = FALSE)
   }
-   
-  # Ordering data
-  mf <- mf[order(mf[[ncol(mf)]]), ]
-   
-  # Extract data
-  # Ensures y is 0-1 encoded
-  y <- as.integer(factor(model.response(mf))) - 1L
-  # Changed (Version 0.5):
-  # Users had some troubles using factor() variables. New code should be more in line with what
-  # Users expect
-  # Old:
-  # X <- model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1)
-  X <- model.matrix(formula, data = mf, rhs = 1L)[, - 1L, drop = FALSE]
-  id <- model.part(formula, data = mf, rhs = 2L)[[1L]]
-   
-  # Perfectly classified: avg in {0,1}
-  mean_table <- aggregate(y ~ id, FUN = mean)
-  mean_y <- mean_table[, 2L]
-  index_pc <- id %in% mean_table[(mean_y > 0.0 & mean_y < 1.0), 1L]
   
-  # Store information
-  nobs <- length(y)
-  d <- ncol(X)
-  events <- sum(y)
-   
-  # Drop perfectly classified
-  y <- y[index_pc]
-  X <- X[index_pc, , drop = FALSE]
-  id <- id[index_pc]
-   
-  # Set starting values if needed and check dimension if specified
-  if(is.null(beta_start)) {
-    beta_start <- numeric(d)
+  # Generate model.frame
+  data <- suppressWarnings(model.frame(formula, data))
+  setDT(data)
+  lhs <- names(data)[[1L]]
+  nobs_full <- nrow(data)
+  nobs_na <- length(attr(data, "na.action"))
+  
+  # Ensure that model response is in line with the choosen model
+  if (data[, is.numeric(get(lhs))]) {
+    # Check if 'y' is in [0, 1]
+    if (data[, any(get(lhs) < 0.0 | get(lhs) > 1.0)]) {
+      stop("Model response has to be within the unit interval.", call. = FALSE)
+    }
   } else {
-    if(length(beta_start) != d) {
-      stop("'beta_start' must be of same dimension as the number of structural parameters.")
+    # Check if 'y' is factor and transform otherwise
+    data[, (1L) := check_factor(get(lhs))]
+    
+    # Check if the number of levels equals two
+    if (data[, length(levels(get(lhs)))] != 2L) {
+      stop("Model response has to be binary.", call. = FALSE)
+    }
+    
+    # Ensure 'y' is 0-1 encoded
+    data[, (1L) := as.integer(get(lhs)) - 1L]
+  }
+  
+  # Get names of the fixed effects variables and sort data
+  idvar <- attr(terms(formula, rhs = 2L), "term.labels")
+  setkeyv(data, idvar)
+  
+  # Drop observations that do not contribute to the loglikelihood
+  trms <- attr(data, "terms") # Store terms; required for model matrix
+  tmpvar <- temp_var(data)
+  data[, (tmpvar) := mean(get(lhs)), by = eval(idvar)]
+  data <- data[get(tmpvar) > 0.0 & get(tmpvar) < 1.0]
+  setattr(data, "terms", trms)
+  rm(trms)
+  
+  # Transform fixed effects indicator to factor and generate auxiliary variables
+  data[, (idvar) := lapply(.SD, check_factor), .SDcols = idvar]
+  nms_fe <- data[, levels(get(idvar))]
+  Ti <- data[, .N, by = eval(idvar)][[2L]]
+
+  # Determine number of dropped observations
+  nobs <- c(nobs_full = nobs_full,
+            nobs_na   = nobs_na,
+            nobs_pc   = nobs_full - nrow(data),
+            nobs      = nrow(data))
+  
+  # Extract model response and regressor matrix
+  y <- data[[1L]]
+  X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
+  id <- as.integer(data[[idvar]])
+  nms_sp <- attr(X, "dimnames")[[2L]] # Saves memory
+  attr(X, "dimnames") <- NULL
+
+  # Check for linear dependence in 'X'
+  p <- ncol(X)
+  if (qr(X)[["rank"]] < p) {
+    stop("Linear dependent terms detected!", call. = FALSE)
+  }
+  
+  # Compute or check validity of starting guesses
+  if (is.null(beta_start)) {
+    beta <- numeric(p)
+  } else {
+    # Check validity of starting guesses
+    if (length(beta_start) != p) {
+      stop("'beta_start' must be of same dimension as the number of structural parameters.",
+           call. = FALSE)
+    }
+    beta <- beta_start
+  }
+  rm(beta_start)
+  
+  # Compute starting guesses
+  alpha <- family[["linkfun"]]((data[, first(get(tmpvar)), by = eval(idvar)][[2L]] + 0.5) / 2.0)
+  data[, (tmpvar) := NULL]
+  
+  # Fit bife
+  fit <- bife_fit(beta, alpha, y, X, id, Ti, family, control)
+  
+  # Add names to \beta, \alpha, and Hessian
+  names(fit[["coefficients"]]) <- nms_sp
+  names(fit[["alpha"]]) <- nms_fe
+  dimnames(fit[["Hessian"]]) <- list(nms_sp, nms_sp)
+  
+  # Return result list
+  structure(c(fit, list(nobs     = nobs,
+                        formula  = formula,
+                        data     = data,
+                        family   = family,
+                        control  = control)), class = "bife")
+}
+
+
+#' @title
+#' Set \code{bife} Control Parameters
+#' @description
+#' Set and change parameters used for fitting \code{\link{bife}}.
+#' @param
+#' dev_tol tolerance level for the first stopping condition of the maximization routine. The 
+#' stopping condition is based on the relative change of the deviance in iteration \eqn{r}
+#' and can be expressed as follows: \eqn{(dev_{r - 1} - dev_{r}) / (0.1 + dev_{r}) < 
+#' tol}{\Delta dev / (0.1 + dev) < tol}. Default is \code{1.0e-08}.
+#' @param
+#' rho_tol tolerance level for the stephalving in the maximization routine. Stephalving only takes
+#' place if the deviance in iteration \eqn{r} is larger than the one of the previous iteration. If 
+#' this is the case, 
+#' \eqn{||\boldsymbol{\beta}_{r} - \boldsymbol{\beta}_{r - 1}||_{2}}{||\Delta \beta||} is 
+#' halfed until the deviance is less or numerically equal compared to the deviance of the previous
+#' iteration. Stephalving fails if the the following condition holds: \eqn{\rho < tol}{\rho < tol}, 
+#' where \eqn{\rho}{\rho} is the stepcorrection factor. If stephalving fails the maximization
+#' routine is canceled. Default is \code{1.0e-04}.
+#' @param
+#' conv_tol tolerance level that accounts for rounding errors inside the stephalving routine when
+#' comparing the deviance with the one of the previous iteration. Default is \code{1.0e-06}.
+#' @param
+#' iter_max unsigned integer indicating the maximum number of iterations in the maximization
+#' routine. Default is \code{100L}.
+#' @param
+#' trace logical indicating if output should be produced in each iteration. Default is \code{FALSE}.
+#' @return
+#' The function \code{\link{bife_control}} returns a named list of control 
+#' parameters.
+#' @seealso
+#' \code{\link{bife}}
+#' @export
+bife_control <- function(dev_tol        = 1.0e-08,
+                         rho_tol        = 1.0e-04,
+                         conv_tol       = 1.0e-06,
+                         iter_max       = 100L,
+                         trace          = FALSE) {
+  # Check validity of tolerance parameters
+  if (dev_tol <= 0.0 || rho_tol <= 0.0 || conv_tol <= 0.0) {
+    stop("All tolerance paramerters should be greater than zero.", call. = FALSE)
+  }
+  
+  # Check validity of 'iter_max'
+  iter_max <- as.integer(iter_max)
+  if (iter_max < 1L) {
+    stop("Maximum number of iterations should be at least one.", call. = FALSE)
+  }
+  
+  # Return list with control parameters
+  list(dev_tol  = dev_tol,
+       rho_tol  = rho_tol,
+       conv_tol = conv_tol,
+       iter_max = iter_max,
+       trace    = as.logical(trace))
+}
+
+
+### Internal functions (not exported)
+
+
+# Fitting function
+bife_fit <- function(beta, alpha, y, X, id, Ti, family, control) {
+  # Compute initial quantities for the maximization routine
+  eta <- as.vector(X %*% beta + alpha[id])
+  mu <- family[["linkinv"]](eta)
+  wt <- rep(1.0, length(y))
+  dev <- sum(family[["dev.resids"]](y, mu, wt))
+  
+  # Start maximization of the log-likelihood
+  conv <- FALSE
+  for (iter in seq.int(control[["iter_max"]])) {
+    # Compute weights and dependent variable
+    mu_eta <- family[["mu.eta"]](eta)
+    w_tilde <- sqrt(mu_eta^2 / family[["variance"]](mu))
+    nu <- (y - mu) / mu_eta
+    
+    # Center regressor matrix
+    MX <- center_variables(X * w_tilde, w_tilde, Ti)
+    
+    # Compute update steps
+    beta_upd <- qr.solve(MX, nu * w_tilde)
+    alpha_upd <- as.vector(update_alpha(as.vector(nu - X %*% beta_upd) * w_tilde, w_tilde, Ti))
+    
+    # Step-halving based on residual deviance as common in glm's
+    dev_old <- dev
+    rho <- 1.0
+    repeat {
+      # Compute residual deviance
+      eta <- as.vector(X %*% (beta + rho * beta_upd) + (alpha + rho * alpha_upd)[id])
+      mu <- family[["linkinv"]](eta)
+      dev <- sum(family[["dev.resids"]](y, mu, wt))
+      
+      # Check if deviance is not increasing
+      if (is.finite(dev) && dev <= dev_old + control[["conv_tol"]] * dev) {
+        # Update \beta and \alpha
+        beta <- beta + rho * beta_upd
+        alpha <- alpha + rho * alpha_upd
+        break
+      }
+      
+      # Update \rho
+      rho <- rho / 2.0
+      
+      # If \rho is to small throw error
+      if (rho < control[["rho_tol"]]) {
+        stop("Failure in step-halving.", call. = FALSE)
+      }
+    }
+    
+    # Progress information
+    if (control[["trace"]]) {
+      cat("Deviance=", dev, "- Iteration=", iter, "\n")
+    }
+    
+    # Check termination condition
+    if ((dev_old - dev) / (0.1 + dev) < control[["dev_tol"]]) {
+      if (control[["trace"]]) {
+        cat("Convergence\n")
+      }
+      conv <- TRUE
+      break
     }
   }
-   
-  # Map "model"
-  switch(model, logit = model_int <- 0L, probit = model_int <- 1L)
-   
-  # Map "bias_corr"
-  switch(bias_corr, no = bias_corr_int <- 0L, ana = bias_corr_int <- 1L)
-   
-  # Start algorithm
-  result <- .bife(y = y, X = X, id = id,
-                  beta_start = beta_start,
-                  model = model_int, bias_corr = bias_corr_int, 
-                  iter_max1 = iter_demeaning, tolerance1 = tol_demeaning, 
-                  iter_max2 = iter_offset, tolerance2 = tol_offset)
-   
-  # Complete list
-  result[["logl_info"]][["nobs"]] <- nobs
-  result[["logl_info"]][["k"]] <- d + length(mean_y)
-  result[["logl_info"]][["events"]] <- events
-  result[["model_info"]][["drop_NA"]] <- length(attr(mf, "na.action"))
-  result[["model_info"]][["drop_pc"]] <- nobs - length(index_pc)
-  result[["model_info"]][["formula"]] <- formula
-  result[["model_info"]][["str_name"]] <- attr(X, "dimnames")[[2L]]
-  result[["model_info"]][["model"]] <- model
-  result[["model_info"]][["bias_corr"]] <- bias_corr
-   
-   
+  
+  # Compute Hessian, standard errors of \alpha, and null deviance
+  H <- crossprod(MX)
+  R <- try(chol(H), silent = TRUE)
+  if (inherits(R, "try-error")) {
+    se_alpha <- rep(Inf, ncol(H))
+  } else {
+    se_alpha <- sqrt(as.vector(variance_alpha(chol2inv(R), X, w_tilde^2, Ti)))
+  }
+  null_dev <- sum(family[["dev.resids"]](y, mean(y), wt))
+  
   # Return list
-  return(structure(result, class = "bife"))
+  list(coefficients  = beta,
+       alpha         = alpha,
+       Hessian       = H,
+       se_alpha      = se_alpha,
+       deviance      = dev,
+       null_deviance = null_dev,
+       conv          = conv,
+       iter          = iter)
+}
+
+
+# Offset function
+bife_offset <- function(y, xb, id, Ti, family, control) {
+  # Compute initial quantities for the maximization routine
+  alpha <- family[["linkfun"]]((as.vector(tapply(y, id, mean)) + 0.5) / 2.0)
+  eta <- alpha[id]
+  alpha <- as.vector(tapply(eta - xb, id, mean))
+  mu <- family[["linkinv"]](eta)
+  wt <- rep(1.0, length(y))
+  dev <- sum(family[["dev.resids"]](y, mu, wt))
+  
+  # Start maximization of the log-likelihood
+  for (iter in seq.int(control[["iter_max"]])) {
+    # Compute weights and dependent variable
+    mu_eta <- family[["mu.eta"]](eta)
+    w_tilde <- sqrt(mu_eta^2 / family[["variance"]](mu))
+    nu <- (y - mu) / mu_eta
+    
+    # Compute update \alpha
+    alpha_upd <- as.vector(update_alpha(nu * w_tilde, w_tilde, Ti))
+    
+    # Step-halving based on residual deviance as common in glm's
+    dev_old <- dev
+    rho <- 1.0
+    repeat {
+      # Compute residual deviance
+      eta <- as.vector(xb + (alpha + rho * alpha_upd)[id])
+      mu <- family[["linkinv"]](eta)
+      dev <- sum(family[["dev.resids"]](y, mu, wt))
+      
+      # Check if deviance is not increasing
+      if (is.finite(dev) && dev <= dev_old + control[["conv_tol"]] * dev) {
+        # Update \alpha and leave step-halving
+        alpha <- alpha + rho * alpha_upd
+        break
+      }
+      
+      # Update \rho
+      rho <- rho / 2.0
+      
+      # If \rho is to small throw error
+      if (rho < control[["rho_tol"]]) {
+        stop("Failure in step-halving.", call. = FALSE)
+      }
+    }
+    
+    # Check termination condition
+    if ((dev_old - dev) / (0.1 + dev) < control[["dev_tol"]]) {
+      break
+    }
+  }
+  
+  # Return \alpha
+  alpha
 }
